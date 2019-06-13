@@ -96,12 +96,12 @@ all_tags[] = {
     {
         .name = STR("link"),
         .empty = true,
-        .display = DISPLAY_INLINE,
+        .display = DISPLAY_NONE,
     },
     {
         .name = STR("meta"),
         .empty = true,
-        .display = DISPLAY_INLINE,
+        .display = DISPLAY_NONE,
     },
     {
         .name = STR("ol"),
