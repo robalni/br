@@ -93,6 +93,12 @@ load_page(struct str url_str) {
     bool last_was_space = true;
     int16_t line_height = 16;
     struct text_size last_size;
+#define TAG_STACK_SIZE 100
+    const struct tag_info *tag_stack[TAG_STACK_SIZE];
+    size_t tag_stack_len = 0;
+
+    uint8_t hidden = 0;  // Number of DISPLAY_NONE tags we are inside.
+
     for (;;) {
         char text[100];
         struct parsed_fragment f
@@ -100,13 +106,11 @@ load_page(struct str url_str) {
         if (f.type == NONE) {
             break;
         }
-        const struct str tag_name;
-        const struct tag_info *tag;
         switch (f.type) {
         case TEXT:
             fprintf(stderr, "%.*s",
                     (int)f.text.len, f.text.ptr);
-            if (f.text.len > 1 || !str_eq(f.text, STR(" "))) {
+            if ((f.text.len > 1 || !str_eq(f.text, STR(" "))) && !hidden) {
                 if (last_was_space && f.text.len > 0 && f.text.ptr[0] == ' ') {
                     f.text = str_after(f.text, 1);
                 }
@@ -126,7 +130,22 @@ load_page(struct str url_str) {
             break;
         case START_TAG: {
             struct parse_state tag_parser = {.code = f.tag};
-            tag = get_tag_info(read_tag_name(&tag_parser));
+
+            const struct tag_info *tag = get_tag_info(read_tag_name(&tag_parser));
+
+            if (!tag->empty) {
+                if (tag_stack_len >= TAG_STACK_SIZE) {
+                    SHOW_E("Too many tags");
+                    return;
+                }
+                tag_stack[tag_stack_len] = tag;
+                tag_stack_len++;
+
+                if (tag->display == DISPLAY_NONE) {
+                    hidden++;
+                }
+            }
+
             fprintf(stderr, "<%.*s%s>",
                     (int)tag->name.len, tag->name.ptr,
                     tag->empty ? " /" : "");
@@ -139,15 +158,29 @@ load_page(struct str url_str) {
         } break;
         case END_TAG: {
             struct parse_state tag_parser = {.code = f.tag};
-            tag = get_tag_info(read_tag_name(&tag_parser));
+            const struct tag_info *
+                end_tag = get_tag_info(read_tag_name(&tag_parser));
+            const struct tag_info *tag = tag_stack[tag_stack_len - 1];
+            if (tag != end_tag) {
+                LOG_W("Tags not properly nested");
+            }
             fprintf(stderr, "</%.*s>",
                     (int)tag->name.len, tag->name.ptr);
+            if (end_tag->display == DISPLAY_NONE) {
+                hidden--;
+            }
             if (tag->display == DISPLAY_BLOCK) {
                 margin = MAX(margin, 16);
                 should_linebreak = true;
             }
             last_was_text = false;
             last_was_space = true;
+
+            if (tag_stack_len > 0) {
+                tag_stack_len--;
+            } else {
+                LOG_W("Too many closing tags");
+            }
         } break;
         }
     }

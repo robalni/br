@@ -19,8 +19,8 @@ struct response_header {
 };
 
 enum display {
-    DISPLAY_NONE,
     DISPLAY_INLINE,
+    DISPLAY_NONE,
     DISPLAY_BLOCK,
 };
 
