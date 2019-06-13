@@ -18,10 +18,16 @@ struct response_header {
     size_t content_length;
 };
 
+enum display {
+    DISPLAY_NONE,
+    DISPLAY_INLINE,
+    DISPLAY_BLOCK,
+};
+
 struct tag_info {
     struct str name;
     bool empty;  // Self-closing
-    bool block;
+    enum display display;
 };
 
 // These tags must be sorted by name to make searching fast.
@@ -30,97 +36,97 @@ all_tags[] = {
     {
         .name = STR("a"),
         .empty = false,
-        .block = false,
+        .display = DISPLAY_INLINE,
     },
     {
         .name = STR("body"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("div"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("h1"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("h2"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("h3"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("h4"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("h5"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("h6"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("head"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("html"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("li"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("link"),
         .empty = true,
-        .block = false,
+        .display = DISPLAY_INLINE,
     },
     {
         .name = STR("meta"),
         .empty = true,
-        .block = false,
+        .display = DISPLAY_INLINE,
     },
     {
         .name = STR("ol"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("p"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
     {
         .name = STR("span"),
         .empty = false,
-        .block = false,
+        .display = DISPLAY_INLINE,
     },
     {
         .name = STR("title"),
         .empty = false,
-        .block = false,
+        .display = DISPLAY_NONE,
     },
     {
         .name = STR("ul"),
         .empty = false,
-        .block = true,
+        .display = DISPLAY_BLOCK,
     },
 };
 

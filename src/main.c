@@ -130,7 +130,7 @@ load_page(struct str url_str) {
             fprintf(stderr, "<%.*s%s>",
                     (int)tag->name.len, tag->name.ptr,
                     tag->empty ? " /" : "");
-            if (tag->block) {
+            if (tag->display == DISPLAY_BLOCK) {
                 margin = MAX(margin, 16);
                 should_linebreak = true;
             }
@@ -142,7 +142,7 @@ load_page(struct str url_str) {
             tag = get_tag_info(read_tag_name(&tag_parser));
             fprintf(stderr, "</%.*s>",
                     (int)tag->name.len, tag->name.ptr);
-            if (tag->block) {
+            if (tag->display == DISPLAY_BLOCK) {
                 margin = MAX(margin, 16);
                 should_linebreak = true;
             }
