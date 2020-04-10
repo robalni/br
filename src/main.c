@@ -7,9 +7,9 @@
 #include "html.c"
 #include "net.c"
 #include "ui.c"
+#include "x.c"
 
-static void
-load_page(struct str url_str) {
+static void load_page(struct Str url_str) {
     struct url url;
     if (parse_url(&url, url_str) != OK) {
         fprintf(stderr, "Bad url.\n");
@@ -40,7 +40,7 @@ load_page(struct str url_str) {
         }
         size_t len_to_recv = content_len
             ? MIN(0x2000 - recvd_len, content_len - recvd_len + headers_len)
-            : 0x100;
+            : 0x1000;
         int ret = recv(conn.sock, page_content + recvd_len, len_to_recv, 0);
         fprintf(stderr, "recvd %d\n", ret);
         if (ret == -1) {
@@ -65,8 +65,8 @@ load_page(struct str url_str) {
                 struct http_header h;
                 while (parse_header(&h, &parser) && h.name.len > 0) {
                     fprintf(stderr, "HEADER [%.*s] [%.*s]\n",
-                            (int)h.name.len, h.name.ptr,
-                            (int)h.value.len, h.value.ptr);
+                            (int)h.name.len, h.name.data,
+                            (int)h.value.len, h.value.data);
                     parsed_some = true;
                     if (str_ieq(h.name, STR("content-length"))) {
                         uint32_t len;
@@ -83,7 +83,7 @@ load_page(struct str url_str) {
             }
         } while (parsed_some && !has_read_headers);
     }
-    fprintf(stderr, "%.*s\n", (int)parser.code.len, parser.code.ptr);
+    fprintf(stderr, "%.*s\n", (int)parser.code.len, parser.code.data);
 
     bool should_linebreak = false;
     int margin = 0;  // Only makes sense if should linebreak.
@@ -92,7 +92,7 @@ load_page(struct str url_str) {
     bool last_was_text = false;
     bool last_was_space = true;
     int16_t line_height = 16;
-    struct text_size last_size;
+    struct TextSize last_size;
 #define TAG_STACK_SIZE 100
     const struct tag_info *tag_stack[TAG_STACK_SIZE];
     size_t tag_stack_len = 0;
@@ -109,9 +109,9 @@ load_page(struct str url_str) {
         switch (f.type) {
         case TEXT:
             fprintf(stderr, "%.*s",
-                    (int)f.text.len, f.text.ptr);
+                    (int)f.text.len, f.text.data);
             if ((f.text.len > 1 || !str_eq(f.text, STR(" "))) && !hidden) {
-                if (last_was_space && f.text.len > 0 && f.text.ptr[0] == ' ') {
+                if (last_was_space && f.text.len > 0 && f.text.data[0] == ' ') {
                     f.text = str_after(f.text, 1);
                 }
                 if (should_linebreak) {
@@ -121,11 +121,11 @@ load_page(struct str url_str) {
                 should_linebreak = false;
                 margin = 0;
                 last_size = ui_measure_text(f.text);
-                ui_draw_text(f.text, x, y);
+                ui_draw_text(f.text.data, f.text.len, x, y);
                 x += last_size.off_x;
                 y += last_size.off_y;
                 last_was_text = true;
-                last_was_space = f.text.ptr[f.text.len - 1] == ' ';
+                last_was_space = f.text.data[f.text.len - 1] == ' ';
             }
             break;
         case START_TAG: {
@@ -147,7 +147,7 @@ load_page(struct str url_str) {
             }
 
             fprintf(stderr, "<%.*s%s>",
-                    (int)tag->name.len, tag->name.ptr,
+                    (int)tag->name.len, tag->name.data,
                     tag->empty ? " /" : "");
             if (tag->display == DISPLAY_BLOCK) {
                 margin = MAX(margin, 16);
@@ -165,7 +165,7 @@ load_page(struct str url_str) {
                 LOG_W("Tags not properly nested");
             }
             fprintf(stderr, "</%.*s>",
-                    (int)tag->name.len, tag->name.ptr);
+                    (int)tag->name.len, tag->name.data);
             if (end_tag->display == DISPLAY_NONE) {
                 hidden--;
             }
@@ -186,9 +186,8 @@ load_page(struct str url_str) {
     }
 }
 
-int
-main(int argc, char **argv) {
-    ui_init();
+int main(int argc, char **argv) {
+    ui_init("Browser of the Web");
 
     const char *url_str = NULL;
     if (argc == 2) {
@@ -197,7 +196,21 @@ main(int argc, char **argv) {
     }
 
     for (;;) {
-        struct event ev = ui_read_input();
+        struct UiEvent ev = ui_read_input();
+        if (ev.render) {
+            ui_fill(0, 0, ui_window_width(), ui_window_height(), 0xffffff);
+            ui_fill(10, 30, ui_window_width() - 20, 2, 0x773322);
+            ui_draw_text(argv[1], strlen(argv[1]), 10, 20);
+            struct Str text = STR("Welcome to my browser :) :) :) :) :) :) :) :) :) :) :) :) :) :) :)");
+            ui_draw_text(text.data, text.len, 10, 58);
+            struct Str text2 = STR("It doesn't javascript :) :) :) :)");
+            ui_draw_text(text2.data, text2.len, 10, 82);
+            ui_show();
+        }
+        if (ev.quit) {
+            break;
+        }
+        ui_sleep_ms(1);
     }
 
     return 0;

@@ -1,5 +1,5 @@
-gcc -std=gnu99 -g -Wall -Wextra \
-    `pkg-config --cflags x11 xft` \
+cc -std=gnu99 -g -Wall -Wextra \
+    `pkg-config --cflags xcb freetype2` \
     src/main.c \
-    `pkg-config --libs x11 xft` \
+    `pkg-config --libs xcb freetype2` \
     -o br

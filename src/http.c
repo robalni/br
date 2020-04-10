@@ -1,25 +1,24 @@
 struct http_status {
     uint16_t code;
-    struct str desc;
+    struct Str desc;
 };
 
 struct http_header {
-    struct str name;
-    struct str value;
+    struct Str name;
+    struct Str value;
 };
 
 struct parse_state {
-    struct str code;
+    struct Str code;
     size_t offset;
 };
 
 // Parses the first line of an HTTP response and updates s->offset to
 // the next line if successful.
-static bool
-parse_status_line(struct http_status *hs, struct parse_state *s) {
-    struct str line = {s->code.ptr + s->offset, 0};
+static bool parse_status_line(struct http_status *hs, struct parse_state *s) {
+    struct Str line = {s->code.data + s->offset, 0};
     while (s->offset + line.len < s->code.len
-            && (unsigned char)line.ptr[line.len] >= 0x20) {
+            && (unsigned char)line.data[line.len] >= 0x20) {
         line.len++;
     }
     // If we hit the end instead of newline then we need more data
@@ -36,11 +35,10 @@ parse_status_line(struct http_status *hs, struct parse_state *s) {
 
 // Parses one header in an HTTP response and updates s->offset to the
 // next line if successful.
-static bool
-parse_header(struct http_header *h, struct parse_state *s) {
-    struct str line = {s->code.ptr + s->offset, 0};
+static bool parse_header(struct http_header *h, struct parse_state *s) {
+    struct Str line = {s->code.data + s->offset, 0};
     while (s->offset + line.len < s->code.len
-            && (unsigned char)line.ptr[line.len] >= 0x20) {
+            && (unsigned char)line.data[line.len] >= 0x20) {
         line.len++;
     }
     // If we hit the end instead of newline then we need more data
@@ -51,24 +49,24 @@ parse_header(struct http_header *h, struct parse_state *s) {
 
     size_t i = 0;
 
-    h->name.ptr = line.ptr;
-    while (i < line.len && line.ptr[i] != ':') {
+    h->name.data = line.data;
+    while (i < line.len && line.data[i] != ':') {
         i++;
     }
     h->name.len = i;
     if (i < line.len) {
         i++;
     }
-    while (i < line.len && line.ptr[i] == ' ') {
+    while (i < line.len && line.data[i] == ' ') {
         i++;
     }
-    h->value.ptr = line.ptr + i;
-    while (i < line.len && line.ptr[i] != '\r' && line.ptr[i] != '\n') {
+    h->value.data = line.data + i;
+    while (i < line.len && line.data[i] != '\r' && line.data[i] != '\n') {
         i++;
     }
-    h->value.len = i - (h->value.ptr - line.ptr);
+    h->value.len = i - (h->value.data - line.data);
     if (s->offset + i + 1 < s->code.len) {
-        if (line.ptr[i] == '\r' && line.ptr[i + 1] == '\n') {
+        if (line.data[i] == '\r' && line.data[i + 1] == '\n') {
             i += 2;
         }
     }

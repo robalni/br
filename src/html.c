@@ -8,8 +8,8 @@ struct parsed_fragment {
     enum fragment_type type;
     // The union has one member for each type except for NONE.
     union {
-        struct str tag;         // START_TAG or END_TAG
-        struct str text;        // TEXT
+        struct Str tag;         // START_TAG or END_TAG
+        struct Str text;        // TEXT
     };
 };
 
@@ -25,14 +25,13 @@ enum display {
 };
 
 struct tag_info {
-    struct str name;
+    struct Str name;
     bool empty;  // Self-closing
     enum display display;
 };
 
 // These tags must be sorted by name to make searching fast.
-static struct tag_info
-all_tags[] = {
+static struct tag_info all_tags[] = {
     {
         .name = STR("a"),
         .empty = false,
@@ -130,8 +129,7 @@ all_tags[] = {
     },
 };
 
-static struct tag_info *
-get_tag_info(struct str name) {
+static struct tag_info * get_tag_info(struct Str name) {
     for (size_t i = 0; i < ARR_LEN(all_tags); i++) {
         if (str_eq(all_tags[i].name, name)) {
             return all_tags + i;
@@ -141,16 +139,15 @@ get_tag_info(struct str name) {
     return &unknown;
 }
 
-static struct str
-read_tag_name(struct parse_state *s) {
-    struct str name = {NULL, 0};
+static struct Str read_tag_name(struct parse_state *s) {
+    struct Str name = {NULL, 0};
     size_t o = s->offset;
     while (o < s->code.len) {
-        char c = s->code.ptr[o];
-        if (!name.ptr && c != '<' && c > ' ' && c != '/') {
-            name.ptr = s->code.ptr + o;
-        } else if (name.ptr && (c <= ' ' || c == '>')) {
-            name.len = o - (name.ptr - s->code.ptr);
+        char c = s->code.data[o];
+        if (!name.data && c != '<' && c > ' ' && c != '/') {
+            name.data = s->code.data + o;
+        } else if (name.data && (c <= ' ' || c == '>')) {
+            name.len = o - (name.data - s->code.data);
             break;
         }
         o++;
@@ -159,18 +156,17 @@ read_tag_name(struct parse_state *s) {
     return name;
 }
 
-static struct parsed_fragment
-parse_response(struct parse_state *s, char *buf, size_t buf_len) {
+static struct parsed_fragment parse_response(struct parse_state *s, char *buf, size_t buf_len) {
     struct parsed_fragment f;
     if (s->offset == s->code.len) {
         f.type = NONE;
-    } else if (s->code.ptr[s->offset] == '<') {
+    } else if (s->code.data[s->offset] == '<') {
         bool inside_quotes = false;
         bool end_tag = false;
         char seen_chars = 0;
         size_t end = s->offset;
         while (end < s->code.len) {
-            char c = s->code.ptr[end];
+            char c = s->code.data[end];
             if (c == '"') {
                 inside_quotes = !inside_quotes;
             } else if (!inside_quotes) {
@@ -186,7 +182,7 @@ parse_response(struct parse_state *s, char *buf, size_t buf_len) {
             seen_chars |= c;
         }
         f.type = end_tag ? END_TAG : START_TAG;
-        f.tag.ptr = s->code.ptr + s->offset;
+        f.tag.data = s->code.data + s->offset;
         f.tag.len = end - s->offset;
         s->offset = end;
     } else {
@@ -194,24 +190,24 @@ parse_response(struct parse_state *s, char *buf, size_t buf_len) {
         bool last_was_space = false;
         size_t len = 0;
         while (end < s->code.len && len < buf_len) {
-            if (s->code.ptr[end] == '<') {
+            if (s->code.data[end] == '<') {
                 break;
             }
-            if ((unsigned char)s->code.ptr[end] <= ' ') {
+            if ((unsigned char)s->code.data[end] <= ' ') {
                 if (!last_was_space) {
                     buf[len] = ' ';
                     last_was_space = true;
                     len++;
                 }
             } else {
-                buf[len] = s->code.ptr[end];
+                buf[len] = s->code.data[end];
                 last_was_space = false;
                 len++;
             }
             end++;
         }
         f.type = TEXT;
-        f.text.ptr = buf;
+        f.text.data = buf;
         f.text.len = len;
         s->offset = end;
     }

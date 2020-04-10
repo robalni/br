@@ -8,12 +8,11 @@ struct connection {
     int sock;
 };
 
-static void
-net_connect(struct connection *conn, struct url url) {
+static void net_connect(struct connection *conn, struct url url) {
     int ret;
 
-    struct str host = str_until_char(url.rest, '/');
-    struct str path = str_after(url.rest, host.len);
+    struct Str host = str_until_char(url.rest, '/');
+    struct Str path = str_after(url.rest, host.len);
     if (path.len == 0) {
         path = STR("/");
     }
@@ -21,7 +20,7 @@ net_connect(struct connection *conn, struct url url) {
     int sock;
     {
         char host_cstr[0x100];
-        snprintf(host_cstr, sizeof host_cstr, "%.*s", (int)host.len, host.ptr);
+        snprintf(host_cstr, sizeof host_cstr, "%.*s", (int)host.len, host.data);
         struct addrinfo hint = {
             .ai_family = AF_UNSPEC,
             .ai_socktype = SOCK_STREAM,
@@ -54,10 +53,9 @@ net_connect(struct connection *conn, struct url url) {
     conn->sock = sock;
 }
 
-static void
-send_http_request(struct connection conn, struct url url) {
-    struct str host = str_until_char(url.rest, '/');
-    struct str path = str_after(url.rest, host.len);
+static void send_http_request(struct connection conn, struct url url) {
+    struct Str host = str_until_char(url.rest, '/');
+    struct Str path = str_after(url.rest, host.len);
     if (path.len == 0) {
         path = STR("/");
     }
@@ -67,8 +65,8 @@ send_http_request(struct connection conn, struct url url) {
             "GET %.*s HTTP/1.1\r\n"
             "Host: %.*s\r\n"
             "\r\n",
-            (int)path.len, path.ptr,
-            (int)host.len, host.ptr);
+            (int)path.len, path.data,
+            (int)host.len, host.data);
     printf("%s", send_buf);
     send(conn.sock, send_buf, ARR_LEN(send_buf) - 1, 0);
 }
